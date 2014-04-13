@@ -64,7 +64,7 @@ var gui, gui_zText,
 	gui_a, gui_b, gui_c, gui_d,
 	gui_segments;
 
-var zFuncText = "x^2 - y^2";
+var zFuncText = "(x^2 - y^2)/200+50";
 var zFunc = Parser.parse(zFuncText).toJSFunction( ['x','y'] );
 
 // parameters for the equations
@@ -269,8 +269,8 @@ function init()
 	gui_d.setValue(1);
 
 	// GUI -- preset equations
-	var gui_preset = gui.addFolder('Preset equations');
-	gui_preset.add( parameters, 'preset1' ).name('Sine Circles');
+    var gui_preset = gui.addFolder('Preset equations');
+    gui_preset.add( parameters, 'preset1' ).name('Shifted Saddle');
 
 	gui.add( parameters, 'resetCam' ).name("Reset Camera");
 	gui.add( parameters, 'graphFunc' ).name("Graph Function");	
@@ -367,13 +367,13 @@ function createGraph()
 function preset01()
 {
 //    gui_zText.setValue("sqrt(a*x^2  + b*y^2)");
-    gui_zText.setValue("(y^2 - x^2) / 200");
-	gui_xMin.setValue(-100); gui_xMax.setValue(100);
-	gui_yMin.setValue(-100); gui_yMax.setValue(100);
-	gui_a.setValue(1);
-	gui_b.setValue(1);
-	gui_segments.setValue(40);
-	createGraph(); resetCamera();
+    gui_zText.setValue("(b*y^2-a*x^2)/200+50");
+    gui_xMin.setValue(-100); gui_xMax.setValue(100);
+    gui_yMin.setValue(-100); gui_yMax.setValue(100);
+    gui_a.setValue(1);
+    gui_b.setValue(1);
+    gui_segments.setValue(40);
+    createGraph(); resetCamera();
 }
 		
 function resetCamera()
@@ -551,7 +551,8 @@ function render()
 
 </script>
 <div id="logo" style="position: absolute; top:-80px; left:-30px; pointer-events:none; background-image: url('./images/T-Plot2.png'); width:691px; height:388px;"></div>
-<div id="touch" style="color: white; position: absolute; font-size: 30px; bottom: 20px; left: 100px;"></div>
+<div style="position:absolute; color:white; font-family: OpenSansLight; width: 410px; line-height: 45px; background:rgba(255,255,255,0.2); border-radius:10px; padding:15px; top: 250px; left:50px; pointer-events: none; text-align:center;"><p>T-Plot is an interactive 3D graphing tool designed to make visualizing algebraic equations convenient and intuitive. Our tool utilizes the hand-tracking capabilities of the Leap Motion in order to give the user full control of the graph's virtual environment. T-Plot transforms limited 2D representations into accurate 3D models, making comprehension that much easier!</p></div>
+<div id="touch" style="color: white; position: absolute; font-size: 30px; bottom: 20px; left: 100px; pointer-events:none;"></div>
 
 </body>
 </html>
