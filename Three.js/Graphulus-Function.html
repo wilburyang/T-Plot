@@ -89,7 +89,7 @@ function init()
 	// CAMERA
 	var SCREEN_WIDTH = window.innerWidth, SCREEN_HEIGHT = window.innerHeight;
 	var VIEW_ANGLE = 45, ASPECT = SCREEN_WIDTH / SCREEN_HEIGHT, NEAR = 0.1, FAR = 20000;
-	camera = new THREE.PerspectiveCamera( VIEW_ANGLE, ASPECT, NEAR, FAR);
+	camera = new THREE.OrthographicCamera( VIEW_ANGLE, ASPECT, NEAR, FAR);
 
 	scene.add(camera);
 	camera.position.set(0,0,200);
@@ -127,8 +127,8 @@ function init()
 	scene.add( new THREE.AxisHelper() );
 
 	// wireframe for xy-plane
-	var wireframeMaterial = new THREE.MeshBasicMaterial( { color: 0x000088, wireframe: true, side:THREE.DoubleSide } ); 
-	var floorGeometry = new THREE.PlaneGeometry(1000,1000,10,10);
+	var wireframeMaterial = new THREE.MeshBasicMaterial( { color: 0xffffff, wireframe: true, side:THREE.DoubleSide } ); 
+	var floorGeometry = new THREE.PlaneGeometry(1000,1000,30,30);
 	var floor = new THREE.Mesh(floorGeometry, wireframeMaterial);
 	floor.position.z = -0.01;
 	// rotate to lie in x-y plane
@@ -147,7 +147,7 @@ function init()
 	var vertexColorMaterial  = new THREE.MeshBasicMaterial( { vertexColors: THREE.VertexColors } );
 
 	// bgcolor
-	renderer.setClearColor( 0x888888, 1 );
+	renderer.setClearColor( 0x000000, 1 );
 
 	/////////////////////////////
 	// CUSTOM FROM LEAP MOTION //
@@ -416,13 +416,33 @@ Leap.loop( {enableGestures: true}, function( frame )
 		return;
 	}
 	
-	handMesh.position.set( handData.palmPosition[0], handData.palmPosition[1] - 200, handData.palmPosition[2]);
-	handMesh.material = lightMaterial;
+	//handMesh.position.set( handData.palmPosition[0], handData.palmPosition[1] - 200, handData.palmPosition[2]);
+	
+	//handMesh.position.set(camera.position.getComponent(0), camera.position.getComponent(1), camera.position.getComponent(2))
+	//handMesh.position.set(camera.position.getComponent(0),camera.position.getComponent(1),0);
+	//handMesh.position.set(camera.position.getComponent(0) + 100 * Math.tan(camera.rotation._x), camera.position.getComponent(1) + 100 * Math.tan(camera.rotation._y),-200 + camera.position.getComponent(2) + 100 * Math.tan(camera.rotation._z));
+	
+	var vector = new THREE.Vector3( 0, 0, -1 );
+	
+	var v = vector.applyQuaternion(camera.quaternion);
+	//console.log(v);
+	var dist = 100;
+	console.log(handData.palmPosition);
+    handMesh.position.set(/*handData.palmPosition[0] +*/ camera.position.getComponent(0) + v.getComponent(0) * dist, /*handData.palmPosition[1] - 200 + */ camera.position.getComponent(1) + v.getComponent(1) * dist, -200 + camera.position.getComponent(2) + v.getComponent(2) * dist);
+    var pos = handData.palmPosition[2];
+    handMesh.position.set(
+        handMesh.position.getComponent(0) + .01 * handMesh.position.getComponent(0) * pos,
+        handMesh.position.getComponent(1) + .01 * handMesh.position.getComponent(1) * pos,
+        handMesh.position.getComponent(2) + .01 * (handMesh.position.getComponent(2) + 200) * pos
+    );
+    //handMesh.position.set( handData.palmPosition[0] + camera.position.getComponent(0), handData.palmPosition[1] - 200 + camera.position.getComponent(1), handData.palmPosition[2] + camera.position.getComponent(2));
+    handMesh.material = lightMaterial;
 		
-	handMesh.rotation.set(0,0,0);
+	handMesh.rotation.set(camera.rotation._x,camera.rotation._y,camera.rotation._z);
+	//handMesh.rotation.set(0,0,0);
 	handMesh.rotateX(  Math.atan2( handData.palmNormal[1], -handData.palmNormal[2] ) );
 	handMesh.rotateY( -Math.atan2( handData.palmNormal[0], -handData.palmNormal[1] ) );
-
+	//handMesh.visible = true;
 	//handShadow.position.x = handData.palmPosition[0];
 	//handShadow.position.z = handData.palmPosition[2];
 	//handShadow.material = lightMaterial;
@@ -436,8 +456,13 @@ Leap.loop( {enableGestures: true}, function( frame )
 
 		fingerLengthArray[i].visible = true;
 		var fingerPosition = new THREE.Vector3( pointer.tipPosition[0], pointer.tipPosition[1] - 200, pointer.tipPosition[2] );
-		var direction = new THREE.Vector3().subVectors( fingerPosition, handPosition );
-		var arrow = new THREE.ArrowHelper( direction.clone().normalize(), handPosition, direction.length() );		
+		//var direction = new THREE.Vector3().subVectors( fingerPosition, handPosition );
+	    var direction = new THREE.Vector3().subVectors(new THREE.Vector3(0,0,0), camera.position);
+		/*console.log(direction);
+		console.log("lol");
+        console.log(fingerPosition);
+        console.log(handPosition);
+		*/var arrow = new THREE.ArrowHelper( direction.clone().normalize(), handPosition, direction.length() );		
 		fingerLengthArray[i].position = new THREE.Vector3().addVectors( handPosition, direction.clone().multiplyScalar(0.5) );
 		fingerLengthArray[i].setRotationFromEuler( arrow.rotation );
 		fingerLengthArray[i].scale.y = direction.length();
@@ -460,7 +485,7 @@ Leap.loop( {enableGestures: true}, function( frame )
 	{
 		for (var i = 0; i < n; i++)
 		{
-			console.log( frame.gestures[i] );
+			//console.log( frame.gestures[i] );
 		}
 	}
 	
