@@ -7,7 +7,6 @@
 	<link rel=stylesheet href="css/base.css"/>
 </head> 
 <body>
-
 <script src="js/Three.js"></script>
 <script src="js/Detector.js"></script>
 <script src="js/Stats.js"></script>
@@ -39,6 +38,7 @@ This three.js demo is part of a collection at
 <!-- ------------------------------------------------------------ -->
 
 <div id="ThreeJS" style="position: absolute; left:0px; top:0px"></div>
+
 <script>
 /*
 	Three.js "tutorials by example"
@@ -52,6 +52,7 @@ This three.js demo is part of a collection at
 var container, scene, camera, renderer, controls, stats;
 var keyboard = new THREEx.KeyboardState();
 var clock = new THREE.Clock();
+var collidableMeshList = [];
 
 // custom global variables from graphing.
 var gui, gui_zText, 
@@ -205,31 +206,6 @@ function init()
 		fingerLength.matrixAutoUpdate = true;
 	}
 	
-	// "shadows", to help judge 3D distance. 
-	// TODO: change scale based on distance from object to plane.
-	//this.handShadow = new THREE.Mesh( new THREE.CircleGeometry( 10, 16 ), darkMaterial );
-	//handShadow.position.y = floor.position.y + 1;
-	//handShadow.rotation.x = floor.rotation.x;
-	//camera.add( handShadow );
-	
-	//this.fingerShadowArray = [];
-	//for (var i = 0; i < 5; i++)
-	//{
-	//	var geometry = new THREE.CircleGeometry( 5, 16 );
-	//	var fingerShadow = new THREE.Mesh( geometry, lightMaterial );
-	//	fingerShadow.position.y = floor.position.y + 1;
-	//	fingerShadow.rotation.x = floor.rotation.x;
-	//	fingerShadowArray.push( fingerShadow );
-	//	camera.add( fingerShadow );
-	//}
-
-	/*
-	// for displaying curvature of hand/finger positions
-	this.curveBall = new THREE.Mesh( new THREE.SphereGeometry(50, 32, 16), 
-		new THREE.MeshBasicMaterial( {color: 0xffff00, transparent: true, wireframe: true} ) );
-	scene.add( curveBall );
-	*/
-
 	///////////////////
 	//   GUI SETUP   //	
 	///////////////////
@@ -360,6 +336,7 @@ function createGraph()
 	
 	graphMesh = new THREE.Mesh( graphGeometry, wireMaterial );
 	graphMesh.doubleSided = true;
+	collidableMeshList.push(graphMesh);
 	scene.add(graphMesh);
 }
 
@@ -444,6 +421,12 @@ Leap.loop( {enableGestures: false}, function( frame )
 		var globalTip = localToGlobal(pointer.tipPosition);
 		fingerMeshArray[i].position.set( globalTip[0], globalTip[1], globalTip[2] );
 
+		var z_value = zFunc(globalTip[0], globalTip[1]);
+		console.log(z_value);
+		if(globalTip[2] - z_value + 200 < 5) {
+			console.log("hi");
+		}
+
 		fingerLengthArray[i].visible = true;
 		var fingerPosition = new THREE.Vector3( pointer.tipPosition[0], pointer.tipPosition[1], pointer.tipPosition[2] );
 		var direction = new THREE.Vector3().subVectors( fingerPosition, handPosition );
@@ -453,28 +436,8 @@ Leap.loop( {enableGestures: false}, function( frame )
 		fingerLengthArray[i].setRotationFromEuler( arrow.rotation );
 		fingerLengthArray[i].scale.y = direction.length();
 		
-		//fingerShadowArray[i].visible = true;
-		//fingerShadowArray[i].position.x = pointer.tipPosition[0];
-		//fingerShadowArray[i].position.z = pointer.tipPosition[2];
+		
 	}
-    
-	/*
-	scene.remove(curveBall);
-	curveBall = new THREE.Mesh( new THREE.SphereGeometry( handData.sphereRadius / 1.1, 32, 16 ), curveBall.material );
-	curveBall.position.set( handData.sphereCenter[0], handData.sphereCenter[1] - 200, handData.sphereCenter[2]  );
-	scene.add(curveBall);
-	*/
-	
-	// gesture debugging
-	/*var n = frame.gestures.length;
-	if (n > 0) 
-	{
-		for (var i = 0; i < n; i++)
-		{
-			console.log( frame.gestures[i] );
-		}
-	}*/
-	
 });
 // end of LeapMotion update
 
@@ -530,12 +493,7 @@ function localToGlobal(localPosition) {
 }
 
 function update()
-{
-	if ( keyboard.pressed("z") ) 
-	{ 
-		// do something
-	}
-	
+{	
 	controls.update();
 	stats.update();
 }
