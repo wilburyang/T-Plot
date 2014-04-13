@@ -1,3 +1,7 @@
+@font-face{
+    font-family: OpenSansLight;
+    src:url(../fonts/OpenSans-Light.ttf);
+}
 body 
 {
 	font-family: Monospace;
@@ -5,4 +9,7 @@ body
 	background-color: #ccccff;
 	margin: 0px;
 	overflow: hidden;
+}
+#touch {
+    font-family:OpenSansLight;
 }
