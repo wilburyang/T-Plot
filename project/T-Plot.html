@@ -47,6 +47,7 @@
 
 		  	var input = document.createElement( 'input' );
 		  	input.type = 'text';
+		  	input.id = 'equation_input'
 		  	input.className = 'input_field';
 		  	container.appendChild( input );
 
@@ -98,7 +99,7 @@
 		var cameraRadius = 800
 		var rotateY = 90, rotateX = 0, curY = 0
 		var fov = camera.fov;
-
+		var equation;
 
 		//request animation frame and connect to leap socket
 		Leap.loop(function(frame) {
@@ -124,6 +125,8 @@
 				camera.position.z = cube.position.y + cameraRadius * Math.sin(rotateY * Math.PI/180) * Math.sin(rotateX * Math.PI/180)
 				camera.position.y = cube.position.z + cameraRadius * Math.cos(rotateY * Math.PI/180)
 				camera.fov = fov * zoomFactor;
+
+				equation = document.getElementById('equation_input').value;
 			}
 
 			camera.updateProjectionMatrix();

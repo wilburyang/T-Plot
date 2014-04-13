@@ -21,6 +21,10 @@
 <!-- http://silentmatt.com/javascript-expression-evaluator/ -->
 <script src="js/parser.js"></script>
 
+<!-- LEAP -->
+<script src="js/leap.js"></script>
+
+
 <!-- jQuery code to display an information button and box when clicked. -->
 <script src="js/jquery-1.9.1.js"></script>
 <script src="js/jquery-ui.js"></script>
@@ -49,7 +53,7 @@ var container, scene, camera, renderer, controls, stats;
 var keyboard = new THREEx.KeyboardState();
 var clock = new THREE.Clock();
 
-// custom global variables
+// custom global variables from graphing.
 var gui, gui_zText, 
 	gui_xMin, gui_xMax, gui_yMin, gui_yMax,
 	gui_a, gui_b, gui_c, gui_d,
@@ -63,13 +67,16 @@ var a = 0.01, b = 0.01, c = 0.01, d = 0.01;
 
 var meshFunction;
 var segments = 20, 
-	xMin = -10, xMax = 10, xRange = xMax - xMin,
-	yMin = -10, yMax = 10, yRange = yMax - yMin,
+	xMin = -100, xMax = 100, xRange = xMax - xMin,
+	yMin = -100, yMax = 100, yRange = yMax - yMin,
 	zMin = -10, zMax = 10, zRange = zMax - zMin;
 	
 var graphGeometry;
 var gridMaterial, wireMaterial, vertexColorMaterial;
 var graphMesh;
+
+// custom global variables from LEAP
+var mesh;///
 
 init();
 animate();
@@ -83,8 +90,9 @@ function init()
 	var SCREEN_WIDTH = window.innerWidth, SCREEN_HEIGHT = window.innerHeight;
 	var VIEW_ANGLE = 45, ASPECT = SCREEN_WIDTH / SCREEN_HEIGHT, NEAR = 0.1, FAR = 20000;
 	camera = new THREE.PerspectiveCamera( VIEW_ANGLE, ASPECT, NEAR, FAR);
+
 	scene.add(camera);
-	camera.position.set(0,150,400);
+	camera.position.set(0,0,200);
 	camera.lookAt(scene.position);	
 	// RENDERER
 	if ( Detector.webgl )
@@ -112,9 +120,9 @@ function init()
 	// SKYBOX/FOG
 	// scene.fog = new THREE.FogExp2( 0x888888, 0.00025 );
 	
-	////////////
-	// CUSTOM //
-	////////////
+	///////////////////////////
+	// CUSTOM FROM GRAPHULUS //
+	///////////////////////////
 	
 	scene.add( new THREE.AxisHelper() );
 
@@ -140,6 +148,87 @@ function init()
 
 	// bgcolor
 	renderer.setClearColor( 0x888888, 1 );
+
+	/////////////////////////////
+	// CUSTOM FROM LEAP MOTION //
+	/////////////////////////////
+
+	this.lightMaterial = new THREE.MeshLambertMaterial( { color: 0xcccc00, side: THREE.DoubleSide, transparent:true, opacity:0.75  } );
+	this.darkMaterial  = new THREE.MeshLambertMaterial( { color: 0x333300, side: THREE.DoubleSide, transparent:true, opacity:0.75  } );
+	this.redMaterial   = new THREE.MeshBasicMaterial( { color: 0xcc0000, side: THREE.DoubleSide, transparent:true, opacity:0.75 } );
+	this.greenMaterial = new THREE.MeshBasicMaterial( { color: 0x00cc00, side: THREE.DoubleSide, transparent:true, opacity:0.75 } );
+	this.blueMaterial  = new THREE.MeshBasicMaterial( { color: 0x0000cc, side: THREE.DoubleSide, transparent:true, opacity:0.75 } );
+
+	// sphere for hand
+	var handGeometry = new THREE.SphereGeometry( 10, 32, 16 );
+	this.handMesh = new THREE.Mesh( handGeometry, darkMaterial );
+	handMesh.position.set(0,40,0);
+	handMesh.matrixAutoUpdate= true;
+	camera.matrixAutoUpdate = true;
+	camera.add(handMesh);
+	
+
+	// sphere angle indicators
+	var handAngleGeometry = new THREE.CircleGeometry( 20, 16 );
+	// XY
+	var handAngleMesh = new THREE.Mesh( handAngleGeometry.clone(), blueMaterial );
+	handMesh.add(handAngleMesh);
+	// XZ
+	var handAngleMesh = new THREE.Mesh( handAngleGeometry.clone(), greenMaterial );
+	handAngleMesh.rotation.x = -Math.PI / 2;
+	handMesh.add(handAngleMesh);
+	// YZ
+	var handAngleMesh = new THREE.Mesh( handAngleGeometry.clone(), redMaterial );
+	handAngleMesh.rotation.y = -Math.PI / 2;
+	handMesh.add(handAngleMesh);
+
+	// spheres for fingertips
+	this.fingerMeshArray = [];
+	for (var i = 0; i < 5; i++)
+	{
+		var geometry = new THREE.SphereGeometry( 5, 16, 8 );
+		var fingerMesh = new THREE.Mesh( geometry, lightMaterial );
+		fingerMeshArray.push( fingerMesh );
+		camera.add( fingerMesh );
+		fingerMesh.matrixAutoUpdate = true;
+	}
+
+	// cylinders for length of finger(s)
+	this.fingerLengthArray = [];
+	for (var i = 0; i < 5; i++)
+	{
+		var fingerLength = cylinderMesh( new THREE.Vector3(0,0,0), new THREE.Vector3(0,1,0) );
+		fingerLength.scale.y = 100;
+		fingerLength.material = lightMaterial;
+		fingerLengthArray.push( fingerLength );
+		camera.add( fingerLength );
+		fingerLength.matrixAutoUpdate = true;
+	}
+	
+	// "shadows", to help judge 3D distance. 
+	// TODO: change scale based on distance from object to plane.
+	//this.handShadow = new THREE.Mesh( new THREE.CircleGeometry( 10, 16 ), darkMaterial );
+	//handShadow.position.y = floor.position.y + 1;
+	//handShadow.rotation.x = floor.rotation.x;
+	//camera.add( handShadow );
+	
+	//this.fingerShadowArray = [];
+	//for (var i = 0; i < 5; i++)
+	//{
+	//	var geometry = new THREE.CircleGeometry( 5, 16 );
+	//	var fingerShadow = new THREE.Mesh( geometry, lightMaterial );
+	//	fingerShadow.position.y = floor.position.y + 1;
+	//	fingerShadow.rotation.x = floor.rotation.x;
+	//	fingerShadowArray.push( fingerShadow );
+	//	camera.add( fingerShadow );
+	//}
+
+	/*
+	// for displaying curvature of hand/finger positions
+	this.curveBall = new THREE.Mesh( new THREE.SphereGeometry(50, 32, 16), 
+		new THREE.MeshBasicMaterial( {color: 0xffff00, transparent: true, wireframe: true} ) );
+	scene.add( curveBall );
+	*/
 
 	///////////////////
 	//   GUI SETUP   //	
@@ -187,6 +276,24 @@ function init()
 	gui.add( parameters, 'graphFunc' ).name("Graph Function");	
 
 	preset01();
+}
+
+// from LEAP
+// create a cylinder with given start pointX and terminus pointY
+function cylinderMesh( pointX, pointY )
+{
+	// edge from X to Y
+	var direction = new THREE.Vector3().subVectors( pointY, pointX );
+	
+	var arrow = new THREE.ArrowHelper( direction.clone().normalize(), pointX, direction.length() );
+		
+	// cylinder: radiusAtTop, radiusAtBottom, height, segmentsAroundRadius, segmentsAlongHeight
+	var edgeGeometry = new THREE.CylinderGeometry( 2, 2, direction.length(), 6, 4 );
+
+	var edgeMesh = new THREE.Mesh( edgeGeometry, new THREE.MeshBasicMaterial( { color: 0x0000ff } ) );
+	edgeMesh.position = new THREE.Vector3().addVectors( pointX, direction.multiplyScalar(0.5) );
+	edgeMesh.setRotationFromEuler( arrow.rotation );
+	return edgeMesh;
 }
 
 function createGraph()
@@ -258,9 +365,9 @@ function createGraph()
 
 function preset01()
 {
-	gui_zText.setValue("sin(sqrt(a*x^2  + b*y^2))");
-	gui_xMin.setValue(-10); gui_xMax.setValue(10);
-	gui_yMin.setValue(-10); gui_yMax.setValue(10);
+	gui_zText.setValue("sqrt(a*x^2  + b*y^2)");
+	gui_xMin.setValue(-100); gui_xMax.setValue(200);
+	gui_yMin.setValue(0); gui_yMax.setValue(100);
 	gui_a.setValue(1);
 	gui_b.setValue(1);
 	gui_segments.setValue(40);
@@ -273,8 +380,8 @@ function resetCamera()
 	var SCREEN_WIDTH = window.innerWidth, SCREEN_HEIGHT = window.innerHeight;
 	var VIEW_ANGLE = 45, ASPECT = SCREEN_WIDTH / SCREEN_HEIGHT, NEAR = 0.1, FAR = 20000;
 	camera = new THREE.PerspectiveCamera( VIEW_ANGLE, ASPECT, NEAR, FAR);
-	camera.position.set( 2*xMax, 0.5*yMax, 4*zMax);
-	camera.up = new THREE.Vector3( 0, 0, 1 );
+	camera.position.set( 0, 0, 400);
+	camera.up = new THREE.Vector3( 0, 1, 0 );
 	camera.lookAt(scene.position);	
 	scene.add(camera);
 	
@@ -285,9 +392,80 @@ function resetCamera()
 function animate() 
 {
     requestAnimationFrame( animate );
-	render();		
+	render();
 	update();
 }
+
+// the LeapMotion update function
+Leap.loop( {enableGestures: true}, function( frame ) 
+{	
+	//Set errything invisible
+	for (var i = 0; i < 5; i++)
+	{
+		fingerMeshArray[i].visible = false; //These are spheres for fingertips
+		fingerLengthArray[i].visible = false; //These are cyclinders for fingers
+		//fingerShadowArray[i].visible = false; //These are disks for shadows of 
+	}
+
+	handData = frame.hands[0];
+	
+	if ( !handData )
+	{
+		handMesh.material   = darkMaterial;
+		//handShadow.material = darkMaterial;
+		return;
+	}
+	
+	handMesh.position.set( handData.palmPosition[0], handData.palmPosition[1] - 200, handData.palmPosition[2]);
+	handMesh.material = lightMaterial;
+		
+	handMesh.rotation.set(0,0,0);
+	handMesh.rotateX(  Math.atan2( handData.palmNormal[1], -handData.palmNormal[2] ) );
+	handMesh.rotateY( -Math.atan2( handData.palmNormal[0], -handData.palmNormal[1] ) );
+
+	//handShadow.position.x = handData.palmPosition[0];
+	//handShadow.position.z = handData.palmPosition[2];
+	//handShadow.material = lightMaterial;
+
+	var	handPosition = new THREE.Vector3( handData.palmPosition[0], handData.palmPosition[1] - 200, handData.palmPosition[2] );	
+	for (var i = 0; i < Math.min(frame.pointables.length,5); i++) 
+	{
+		var pointer = frame.pointables[i];
+		fingerMeshArray[i].visible = true;
+		fingerMeshArray[i].position.set( pointer.tipPosition[0], pointer.tipPosition[1] - 200, pointer.tipPosition[2] );
+
+		fingerLengthArray[i].visible = true;
+		var fingerPosition = new THREE.Vector3( pointer.tipPosition[0], pointer.tipPosition[1] - 200, pointer.tipPosition[2] );
+		var direction = new THREE.Vector3().subVectors( fingerPosition, handPosition );
+		var arrow = new THREE.ArrowHelper( direction.clone().normalize(), handPosition, direction.length() );		
+		fingerLengthArray[i].position = new THREE.Vector3().addVectors( handPosition, direction.clone().multiplyScalar(0.5) );
+		fingerLengthArray[i].setRotationFromEuler( arrow.rotation );
+		fingerLengthArray[i].scale.y = direction.length();
+		
+		//fingerShadowArray[i].visible = true;
+		//fingerShadowArray[i].position.x = pointer.tipPosition[0];
+		//fingerShadowArray[i].position.z = pointer.tipPosition[2];
+	}
+    
+	/*
+	scene.remove(curveBall);
+	curveBall = new THREE.Mesh( new THREE.SphereGeometry( handData.sphereRadius / 1.1, 32, 16 ), curveBall.material );
+	curveBall.position.set( handData.sphereCenter[0], handData.sphereCenter[1] - 200, handData.sphereCenter[2]  );
+	scene.add(curveBall);
+	*/
+	
+	// gesture debugging
+	var n = frame.gestures.length;
+	if (n > 0) 
+	{
+		for (var i = 0; i < n; i++)
+		{
+			console.log( frame.gestures[i] );
+		}
+	}
+	
+});
+// end of LeapMotion update
 
 function update()
 {
