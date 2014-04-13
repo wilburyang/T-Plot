@@ -397,7 +397,7 @@ function animate()
 }
 
 // the LeapMotion update function
-Leap.loop( {enableGestures: true}, function( frame ) 
+Leap.loop( {enableGestures: false}, function( frame ) 
 {	
 	//Set errything invisible
 	for (var i = 0; i < 5; i++)
@@ -421,68 +421,17 @@ Leap.loop( {enableGestures: true}, function( frame )
 	//handMesh.position.set(camera.position.getComponent(0), camera.position.getComponent(1), camera.position.getComponent(2))
 	//handMesh.position.set(camera.position.getComponent(0),camera.position.getComponent(1),0);
 	//handMesh.position.set(camera.position.getComponent(0) + 100 * Math.tan(camera.rotation._x), camera.position.getComponent(1) + 100 * Math.tan(camera.rotation._y),-200 + camera.position.getComponent(2) + 100 * Math.tan(camera.rotation._z));
-	
-	var vector = new THREE.Vector3( 0, 0, -1 );
-	
-	var v = vector.applyQuaternion(camera.quaternion);
-	//console.log(v);
-	var dist = 100;
-	//console.log(handData.palmPosition);
-	var hm0 = camera.position.getComponent(0) + v.getComponent(0) * dist;
-    var hm1 = camera.position.getComponent(1) + v.getComponent(1) * dist;
-    var hm2 = camera.position.getComponent(2) + v.getComponent(2) * dist;
-    
-    var up0 = camera.up.getComponent(0);
-    var up1 = camera.up.getComponent(1);
-    var up2 = camera.up.getComponent(2);
-    
-    var posz = handData.palmPosition[2];
-    var posy = handData.palmPosition[1] - 170;
-    var posx = handData.palmPosition[0];
 
-    // Local z direction is simply the handMesh position direction
+    //console.log(handData.palmPosition);
 
-    var z0 = hm0;
-    var z1 = hm1;
-    var z2 = hm2;
-    var lenz = Math.sqrt(z0 * z0 + z1 * z1 + z2 * z2);
-    z0 /= lenz;
-    z1 /= lenz;
-    z2 /= lenz;
-    console.log(z0);
-    
-    // Local y direction is simply the camera up direction
-    
-    var y0 = camera.up.getComponent(0);
-    var y1 = camera.up.getComponent(1);
-    var y2 = camera.up.getComponent(2);
-    var leny = Math.sqrt(y0 * y0 + y1 * y1 + y2 * y2);
-    y0 /= leny;
-    y1 /= leny;
-    y2 /= leny;
-    
-    // Cross product the camera up and handMesh position vectors
-    // to find a unit vector in the local x direction
-
-    var x0 = up1 * hm2 - up2 * hm1;
-    var x1 = up2 * hm0 - up0 * hm2;
-    var x2 = up0 * hm1 - up1 * hm0;
-    var lenx = Math.sqrt(x0 * x0 + x1 * x1 + x2 * x2);
-    x0 /= lenx;
-    x1 /= lenx;
-    x2 /= lenx;
-    
     // Set position of hand
     
-    handMesh.position.set(
-        hm0 + z0 * posz + y0 * posy + x0 * posx,
-        hm1 + z1 * posz + y1 * posy + x1 * posx,
-        hm2 + z2 * posz + y2 * posy + x2 * posx 
-    );
-    console.log(handMesh.position);
+    var globalVector = localToGlobal(handData.palmPosition);
+    handMesh.position.set(globalVector[0], globalVector[1], globalVector[2]);
+    
     //handMesh.position.set( handData.palmPosition[0] + camera.position.getComponent(0), handData.palmPosition[1] - 200 + camera.position.getComponent(1), handData.palmPosition[2] + camera.position.getComponent(2));
     handMesh.material = lightMaterial;
-		
+
 	handMesh.rotation.set(camera.rotation._x,camera.rotation._y,camera.rotation._z);
 	handMesh.rotateX(  Math.atan2( handData.palmNormal[1], -handData.palmNormal[2] ) );
 	handMesh.rotateY( -Math.atan2( handData.palmNormal[0], -handData.palmNormal[1] ) );
@@ -492,7 +441,8 @@ Leap.loop( {enableGestures: true}, function( frame )
 	{
 		var pointer = frame.pointables[i];
 		fingerMeshArray[i].visible = true;
-		fingerMeshArray[i].position.set( pointer.tipPosition[0], pointer.tipPosition[1], pointer.tipPosition[2] );
+		var globalTip = localToGlobal(pointer.tipPosition);
+		fingerMeshArray[i].position.set( globalTip[0], globalTip[1], globalTip[2] );
 
 		fingerLengthArray[i].visible = true;
 		var fingerPosition = new THREE.Vector3( pointer.tipPosition[0], pointer.tipPosition[1], pointer.tipPosition[2] );
@@ -516,17 +466,68 @@ Leap.loop( {enableGestures: true}, function( frame )
 	*/
 	
 	// gesture debugging
-	var n = frame.gestures.length;
+	/*var n = frame.gestures.length;
 	if (n > 0) 
 	{
 		for (var i = 0; i < n; i++)
 		{
-			//console.log( frame.gestures[i] );
+			console.log( frame.gestures[i] );
 		}
-	}
+	}*/
 	
 });
 // end of LeapMotion update
+
+function localToGlobal(localPosition) {
+    var hm0 = camera.position.getComponent(0);
+    var hm1 = camera.position.getComponent(1);
+    var hm2 = camera.position.getComponent(2);
+    
+    var up0 = camera.up.getComponent(0);
+    var up1 = camera.up.getComponent(1);
+    var up2 = camera.up.getComponent(2);
+    
+    var posx = localPosition[0];
+    var posy = localPosition[1] - 170;
+    var posz = localPosition[2] - 140;
+
+    // Local z direction is simply the handMesh position direction
+
+    var z0 = hm0;
+    var z1 = hm1;
+    var z2 = hm2;
+    var lenz = Math.sqrt(z0 * z0 + z1 * z1 + z2 * z2);
+    z0 /= lenz;
+    z1 /= lenz;
+    z2 /= lenz;
+    
+    // Local y direction is simply the camera up direction
+    
+    var y0 = camera.up.getComponent(0);
+    var y1 = camera.up.getComponent(1);
+    var y2 = camera.up.getComponent(2);
+    var leny = Math.sqrt(y0 * y0 + y1 * y1 + y2 * y2);
+    y0 /= leny;
+    y1 /= leny;
+    y2 /= leny;
+    
+    // Cross product the camera up and handMesh position vectors
+    // to find a unit vector in the local x direction
+
+    var x0 = up1 * hm2 - up2 * hm1;
+    var x1 = up2 * hm0 - up0 * hm2;
+    var x2 = up0 * hm1 - up1 * hm0;
+    var lenx = Math.sqrt(x0 * x0 + x1 * x1 + x2 * x2);
+    x0 /= lenx;
+    x1 /= lenx;
+    x2 /= lenx;
+    
+    return new Array(
+        hm0 + z0 * posz + y0 * posy + x0 * posx,
+        hm1 + z1 * posz + y1 * posy + x1 * posx,
+        hm2 + z2 * posz + y2 * posy + x2 * posx
+    );
+}
 
 function update()
 {
