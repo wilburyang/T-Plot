@@ -92,7 +92,7 @@ function init()
 	camera = new THREE.OrthographicCamera( VIEW_ANGLE, ASPECT, NEAR, FAR);
 
 	scene.add(camera);
-	camera.position.set(0,0,200);
+	camera.position.set(0,0,0);
 	camera.lookAt(scene.position);	
 	// RENDERER
 	if ( Detector.webgl )
@@ -428,12 +428,16 @@ Leap.loop( {enableGestures: true}, function( frame )
 	//console.log(v);
 	var dist = 100;
 	console.log(handData.palmPosition);
-    handMesh.position.set(/*handData.palmPosition[0] +*/ camera.position.getComponent(0) + v.getComponent(0) * dist, /*handData.palmPosition[1] - 200 + */ camera.position.getComponent(1) + v.getComponent(1) * dist, -200 + camera.position.getComponent(2) + v.getComponent(2) * dist);
+    handMesh.position.set(
+        camera.position.getComponent(0) + v.getComponent(0) * dist,
+        camera.position.getComponent(1) + v.getComponent(1) * dist,
+        camera.position.getComponent(2) + v.getComponent(2) * dist
+    );
     var pos = handData.palmPosition[2];
     handMesh.position.set(
         handMesh.position.getComponent(0) + .01 * handMesh.position.getComponent(0) * pos,
         handMesh.position.getComponent(1) + .01 * handMesh.position.getComponent(1) * pos,
-        handMesh.position.getComponent(2) + .01 * (handMesh.position.getComponent(2) + 200) * pos
+        handMesh.position.getComponent(2) + .01 * handMesh.position.getComponent(2) * pos
     );
     //handMesh.position.set( handData.palmPosition[0] + camera.position.getComponent(0), handData.palmPosition[1] - 200 + camera.position.getComponent(1), handData.palmPosition[2] + camera.position.getComponent(2));
     handMesh.material = lightMaterial;
