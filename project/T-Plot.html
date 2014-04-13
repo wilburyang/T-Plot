@@ -1,192 +1,178 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-	<title>three.js canvas - geometry - cube</title>
+	<title>T-Plot</title>
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
-	<style>
-	body {
-		font-family: Monospace;
-		background-color: #f0f0f0;
-		margin: 0px;
-		overflow: hidden;
-	}
-	</style>
+	<link rel="stylesheet" type="text/css" href="T-Plot.css">
 </head>
 <body>
 	<script src="../build/three.min.js"></script>
 	<script src="../leap-0.4.3.js"></script>
-
-
 	<script>
-  	//map function to be used to map values from leap into proper degrees (0-360)
-  	function map(value, inputMin, inputMax, outputMin, outputMax){
-	  	outVal = ((value - inputMin) / (inputMax - inputMin) * (outputMax - outputMin) + outputMin);
-	  	if(outVal >  outputMax){
-	  		outVal = outputMax;
+
+	  	//map function to be used to map values from leap into proper degrees (0-360)
+	  	function map(value, inputMin, inputMax, outputMin, outputMax){
+		  	outVal = ((value - inputMin) / (inputMax - inputMin) * (outputMax - outputMin) + outputMin);
+		  	if(outVal >  outputMax){
+		  		outVal = outputMax;
+		  	}
+		  	if(outVal <  outputMin){
+		  		outVal = outputMin;
+		  	}
+		  	return outVal;
 	  	}
-	  	if(outVal <  outputMin){
-	  		outVal = outputMin;
-	  	}
-	  	return outVal;
-  	}
 
 
-	  var container, container2;
+		  var container;
 
-	  var camera, scene, renderer, renderer2;
+		  var camera, scene, renderer;
 
-	  var cube, plane;
+		  var cube, axes;
 
-	  var targetRotation = 0;
-	  var targetRotationOnMouseDown = 0;
+		  var targetRotation = 0;
+		  var targetRotationOnMouseDown = 0;
 
-	  var controls;
+		  init();
 
-	  var windowHalfX = window.innerWidth / 2;
-	  var windowHalfY = window.innerHeight / 2;
+		  function init() {
 
-	  init();
+		  	container = document.createElement( 'div' );
+		  	document.body.appendChild( container );
 
-	  function init() {
+		  	var info = document.createElement( 'div' );
+		  	info.className = 'info_top';
+		  	info.innerHTML = 'Move hand to spin the cube';
+		  	container.appendChild( info );
 
-	  	container = document.createElement( 'div' );
-	  	document.body.appendChild( container );
+		  	var input = document.createElement( 'input' );
+		  	input.type = 'text';
+		  	input.className = 'input_field';
+		  	container.appendChild( input );
 
-	  	var info = document.createElement( 'div' );
-	  	info.style.position = 'absolute';
-	  	info.style.top = '10px';
-	  	info.style.width = '100%';
-	  	info.style.textAlign = 'center';
-	  	info.innerHTML = 'Move hand to spin the cube';
-	  	container.appendChild( info );
+		  	scene = new THREE.Scene();
 
-	  	scene = new THREE.Scene();
+			//add camera
+			WIDTH      = window.innerWidth,
+			HEIGHT     = window.innerHeight,
+			VIEW_ANGLE = 70,
+			ASPECT     = WIDTH / HEIGHT,
+			NEAR       = 1,
+			FAR        = 1000
+			window.camera = new THREE.PerspectiveCamera( VIEW_ANGLE, ASPECT, NEAR, FAR );
+			camera.lookAt( scene.position )
+			camera.position.set(0, 0, 290);
+			console.log(camera);
 
-		//add camera
-		WIDTH      = window.innerWidth,
-		HEIGHT     = window.innerHeight,
-		VIEW_ANGLE = 70,
-		ASPECT     = WIDTH / HEIGHT,
-		NEAR       = 1,
-		FAR        = 1000
-		window.camera = new THREE.PerspectiveCamera( VIEW_ANGLE, ASPECT, NEAR, FAR );
-		camera.lookAt( scene.position )
-		camera.position.set(0, 0, 290);
-		console.log(camera);
+			// Cube
 
-		// Cube
+			var geometry = new THREE.CubeGeometry( 200, 200, 200 );
 
-		var geometry = new THREE.CubeGeometry( 200, 200, 200 );
+			for ( var i = 0; i < geometry.faces.length; i += 2 ) {
+				//var hex = Math.random() * 0xffffff;
+				var hex = (i * 0x123456 ) % 0xffffff;
+				geometry.faces[ i ].color.setHex( hex );
+				geometry.faces[ i + 1 ].color.setHex( hex );
 
-		for ( var i = 0; i < geometry.faces.length; i += 2 ) {
+			}
 
-			var hex = Math.random() * 0xffffff;
-			geometry.faces[ i ].color.setHex( hex );
-			geometry.faces[ i + 1 ].color.setHex( hex );
+			var material = new THREE.MeshBasicMaterial( { vertexColors: THREE.FaceColors, overdraw: 0.5 } );
+
+			cube = new THREE.Mesh(geometry, material);
+			scene.add( cube );
+
+			axes = buildAxes(1000);
+			scene.add(axes); 
+
+			 renderer = new THREE.WebGLRenderer();
+		     renderer.setSize(window.innerWidth, window.innerHeight);
+		     document.body.appendChild(renderer.domElement);
+			 renderer.setClearColor( 0xf0f0f0 );
+
+			container.appendChild( renderer.domElement );
+
+	 	}	
+
+		//initiate variables
+		var firstValidFrame = null
+		var cameraRadius = 800
+		var rotateY = 90, rotateX = 0, curY = 0
+		var fov = camera.fov;
+
+
+		//request animation frame and connect to leap socket
+		Leap.loop(function(frame) {
+			if (frame.valid) {
+
+				// cube.rotation.y += .002;
+				// axes.rotation.y += .002;
+				 if (!firstValidFrame) firstValidFrame = frame;
+				 var t = firstValidFrame.translation(frame);
+
+				 //limit y-axis between 0 and 180 degrees
+				 curY = map(t[1], -300, 300, 0, 179);
+
+				//assign rotation coordinates
+				rotateX = t[0];
+				rotateY = -curY;
+
+				zoom = Math.max(0, t[2] + 200);
+				zoomFactor = 1/(1 + (zoom / 150));
+
+				//adjust 3D spherical coordinates of the camera
+				camera.position.x = cube.position.x + cameraRadius * Math.sin(rotateY * Math.PI/180) * Math.cos(rotateX * Math.PI/180)
+				camera.position.z = cube.position.y + cameraRadius * Math.sin(rotateY * Math.PI/180) * Math.sin(rotateX * Math.PI/180)
+				camera.position.y = cube.position.z + cameraRadius * Math.cos(rotateY * Math.PI/180)
+				camera.fov = fov * zoomFactor;
+			}
+
+			camera.updateProjectionMatrix();
+			camera.lookAt(scene.position);
+			renderer.render(scene, camera);
+		});
+
+		//window resize method
+		window.addEventListener( 'resize', onWindowResize, false );
+		function onWindowResize(){
+			camera.aspect = window.innerWidth / window.innerHeight;
+			camera.updateProjectionMatrix();
+
+			renderer.setSize( window.innerWidth, window.innerHeight );
+		}
+
+		function buildAxes( length ) {
+			var axes = new THREE.Object3D();
+
+			axes.add( buildAxis( new THREE.Vector3( 0, 0, 0 ), new THREE.Vector3( length, 0, 0 ), 0xFF0000, false ) ); // +X
+			axes.add( buildAxis( new THREE.Vector3( 0, 0, 0 ), new THREE.Vector3( -length, 0, 0 ), 0xFF0000, true) ); // -X
+			axes.add( buildAxis( new THREE.Vector3( 0, 0, 0 ), new THREE.Vector3( 0, length, 0 ), 0x00FF00, false ) ); // +Y
+			axes.add( buildAxis( new THREE.Vector3( 0, 0, 0 ), new THREE.Vector3( 0, -length, 0 ), 0x00FF00, true ) ); // -Y
+			axes.add( buildAxis( new THREE.Vector3( 0, 0, 0 ), new THREE.Vector3( 0, 0, length ), 0x0000FF, false ) ); // +Z
+			axes.add( buildAxis( new THREE.Vector3( 0, 0, 0 ), new THREE.Vector3( 0, 0, -length ), 0x0000FF, true ) ); // -Z
+
+			return axes;
 
 		}
 
-		var material = new THREE.MeshBasicMaterial( { vertexColors: THREE.FaceColors, overdraw: 0.5 } );
+		function buildAxis( src, dst, colorHex, dashed ) {
+			var geom = new THREE.Geometry(),
+				mat; 
 
-		cube = new THREE.Mesh( geometry, material );
-		scene.add( cube );
+			if(dashed) {
+				mat = new THREE.LineDashedMaterial({ linewidth: 3, color: colorHex, dashSize: 3, gapSize: 3 });
+			} else {
+				mat = new THREE.LineBasicMaterial({ linewidth: 3, color: colorHex });
+			}
 
-		var axes = buildAxes(1000);
-		scene.add(axes); 
+			geom.vertices.push( src.clone() );
+			geom.vertices.push( dst.clone() );
+			geom.computeLineDistances(); // This one is SUPER important, otherwise dashed lines will appear as simple plain lines
 
-		 renderer = new THREE.WebGLRenderer();
-	     renderer.setSize(window.innerWidth, window.innerHeight);
-	     document.body.appendChild(renderer.domElement);
-		 renderer.setClearColor( 0xf0f0f0 );
+			var axis = new THREE.Line( geom, mat, THREE.LinePieces );
 
-		container.appendChild( renderer.domElement );
+			return axis;
 
- 	}	
-
-	//initiate variables
-	var firstValidFrame = null
-	var cameraRadius = 800
-	var rotateY = 90, rotateX = 0, curY = 0
-	var fov = camera.fov;
-
-
-	//request animation frame and connect to leap socket
-	Leap.loop(function(frame) {
-		if (frame.valid) {
-
-			//rotate cloud and earth independently
-			// clouds.rotation.y+=.002
-			// earth.rotation.y+=.001
-			cube.rotation.y += .002
-
-			 if (!firstValidFrame) firstValidFrame = frame
-			 var t = firstValidFrame.translation(frame)
-
-			 //limit y-axis between 0 and 180 degrees
-			 curY = map(t[1], -300, 300, 0, 179)
-
-			//assign rotation coordinates
-			rotateX = t[0]
-			rotateY = -curY
-
-			zoom = Math.max(0, t[2] + 200);
-			zoomFactor = 1/(1 + (zoom / 150));
-
-			//adjust 3D spherical coordinates of the camera
-			camera.position.x = cube.position.x + cameraRadius * Math.sin(rotateY * Math.PI/180) * Math.cos(rotateX * Math.PI/180)
-			camera.position.z = cube.position.y + cameraRadius * Math.sin(rotateY * Math.PI/180) * Math.sin(rotateX * Math.PI/180)
-			camera.position.y = cube.position.z + cameraRadius * Math.cos(rotateY * Math.PI/180)
-			camera.fov = fov * zoomFactor;
 		}
-
-		camera.updateProjectionMatrix();
-		camera.lookAt(scene.position);
-		renderer.render(scene, camera);
-	});
-
-	//window resize method
-	window.addEventListener( 'resize', onWindowResize, false );
-	function onWindowResize(){
-		camera.aspect = window.innerWidth / window.innerHeight;
-		camera.updateProjectionMatrix();
-
-		renderer.setSize( window.innerWidth, window.innerHeight );
-	}
-
-	function buildAxes( length ) {
-		var axes = new THREE.Object3D();
-
-		axes.add( buildAxis( new THREE.Vector3( 0, 0, 0 ), new THREE.Vector3( length, 0, 0 ), 0xFF0000, false ) ); // +X
-		axes.add( buildAxis( new THREE.Vector3( 0, 0, 0 ), new THREE.Vector3( -length, 0, 0 ), 0xFF0000, true) ); // -X
-		axes.add( buildAxis( new THREE.Vector3( 0, 0, 0 ), new THREE.Vector3( 0, length, 0 ), 0x00FF00, false ) ); // +Y
-		axes.add( buildAxis( new THREE.Vector3( 0, 0, 0 ), new THREE.Vector3( 0, -length, 0 ), 0x00FF00, true ) ); // -Y
-		axes.add( buildAxis( new THREE.Vector3( 0, 0, 0 ), new THREE.Vector3( 0, 0, length ), 0x0000FF, false ) ); // +Z
-		axes.add( buildAxis( new THREE.Vector3( 0, 0, 0 ), new THREE.Vector3( 0, 0, -length ), 0x0000FF, true ) ); // -Z
-
-		return axes;
-
-	}
-
-	function buildAxis( src, dst, colorHex, dashed ) {
-		var geom = new THREE.Geometry(),
-			mat; 
-
-		if(dashed) {
-			mat = new THREE.LineDashedMaterial({ linewidth: 3, color: colorHex, dashSize: 3, gapSize: 3 });
-		} else {
-			mat = new THREE.LineBasicMaterial({ linewidth: 3, color: colorHex });
-		}
-
-		geom.vertices.push( src.clone() );
-		geom.vertices.push( dst.clone() );
-		geom.computeLineDistances(); // This one is SUPER important, otherwise dashed lines will appear as simple plain lines
-
-		var axis = new THREE.Line( geom, mat, THREE.LinePieces );
-
-		return axis;
-
-	}
 
 	</script>
 
